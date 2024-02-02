@@ -35,7 +35,7 @@ import HieDb.Types
 import HieDb.Utils
 
 sCHEMA_VERSION :: Integer
-sCHEMA_VERSION = 6
+sCHEMA_VERSION = 7
 
 dB_VERSION :: Integer
 dB_VERSION = read (show sCHEMA_VERSION ++ "999" ++ show hieVersion)
@@ -330,7 +330,8 @@ addRefsFromLoaded_unsafe
     executeMany conn "INSERT INTO decls VALUES (?,?,?,?,?,?,?)" decls
 
   let defs = genDefRow path smod refmap
-  executeMany conn "INSERT INTO defs VALUES (?,?,?,?,?,?)" defs
+  forM defs $ \def -> do
+    execute conn "INSERT INTO defs VALUES (?,?,?,?,?,?)" def
 
   let exports = generateExports path $ hie_exports hf
   unless (skipExports skipOptions) $

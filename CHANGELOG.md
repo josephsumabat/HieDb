@@ -1,7 +1,19 @@
 # Revision history for hiedb
 
-## 0.4.4.0 -- TODO
+## 0.5.0.1 -- 2024-01-12
+
+- Fix incorrect Show Symbol instance in 0.5.0.0
+
+## 0.5.0.0 -- 2024-01-12
+
+- Handle duplicate record fields in GHC 9.8 instead of crashing
+
+## 0.4.4.0 -- 2023-11-13
 * Add `--src-base-dir` option allowing for src file indexing in `mods`
+* 9.8.1 support
+* Add `lookupHieFileFromHash`
+* Add `lookupPackage`
+* Add `removeDependencySrcFiles`
 
 ## 0.4.3.0 -- 2023-03-13
 

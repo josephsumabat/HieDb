@@ -1,5 +1,5 @@
 
-{-# LANGUAGE CPP, PatternSynonyms, ViewPatterns #-}
+{-# LANGUAGE CPP, PatternSynonyms, ViewPatterns, TupleSections #-}
 module HieDb.Compat (
     nodeInfo'
     , Unit
@@ -81,6 +81,9 @@ module HieDb.Compat (
     , IfaceTyCon(..)
     , field_label
     , dfs
+    , fieldNameSpace_maybe
+    , fieldName
+    , mkFastStringByteString
 ) where
 
 import Compat.HieTypes
@@ -185,7 +188,9 @@ hiePathToFS fs = fs
 {-# COMPLETE AvailTC, AvailName, AvailFL #-}
 
 pattern AvailTC :: Name -> [Name] -> [FieldLabel] -> Avail.AvailInfo
-#if __GLASGOW_HASKELL__ >= 902
+#if __GLASGOW_HASKELL__ >= 907
+pattern AvailTC n names pieces <- Avail.AvailTC n ((,[]) -> (names,pieces))
+#elif __GLASGOW_HASKELL__ >= 902
 pattern AvailTC n names pieces <- Avail.AvailTC n ((\gres -> foldr (\gre (names, pieces) -> case gre of
       Avail.NormalGreName name -> (name: names, pieces)
       Avail.FieldGreName label -> (names, label:pieces)) ([], []) gres) -> (names, pieces))
@@ -194,14 +199,18 @@ pattern AvailTC n names pieces <- Avail.AvailTC n names pieces
 #endif
 
 pattern AvailName :: Name -> Avail.AvailInfo
-#if __GLASGOW_HASKELL__ >= 902
+#if __GLASGOW_HASKELL__ >= 907
+pattern AvailName n <- Avail.Avail n
+#elif __GLASGOW_HASKELL__ >= 902
 pattern AvailName n <- Avail.Avail (Avail.NormalGreName n)
 #else
 pattern AvailName n <- Avail.Avail n
 #endif
 
 pattern AvailFL :: FieldLabel -> Avail.AvailInfo
-#if __GLASGOW_HASKELL__ >= 902
+#if __GLASGOW_HASKELL__ >= 907
+pattern AvailFL fl <- (const Nothing -> Just fl) -- this pattern always fails as this field was removed in 9.7
+#elif __GLASGOW_HASKELL__ >= 902
 pattern AvailFL fl <- Avail.Avail (Avail.FieldGreName fl)
 #else
 -- pattern synonym that is never populated
@@ -222,4 +231,17 @@ dfs :: Ord a => Graph.AdjacencyMap a -> [a] -> [a]
 dfs = Graph.dfs
 #else
 dfs = flip Graph.dfs
+#endif
+
+fieldNameSpace_maybe :: NameSpace -> Maybe FastString
+#if __GLASGOW_HASKELL__ >= 907
+-- This is horrible, we can improve it once
+-- https://gitlab.haskell.org/ghc/ghc/-/issues/24244 is addressed
+fieldNameSpace_maybe ns = fieldOcc_maybe (mkOccName ns "")
+#endif
+fieldNameSpace_maybe _ = Nothing
+
+#if __GLASGOW_HASKELL__ < 907
+fieldName :: FastString -> NameSpace
+fieldName _ = varName
 #endif
